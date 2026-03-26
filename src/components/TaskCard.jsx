@@ -346,16 +346,17 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             {' '}{displayTitle}
           </span>
 
-          {contextLabel && (
-            <span
-              style={styles.contextLink}
-              onClick={(e) => { e.stopPropagation(); if (onContextClick) onContextClick() }}
-            >
-              {contextLabel}
-            </span>
-          )}
-
           <div style={styles.badges}>
+            {/* Context label (Plate → Sub-plate) — first in row when present */}
+            {contextLabel && (
+              <span
+                style={styles.contextLink}
+                onClick={(e) => { e.stopPropagation(); if (onContextClick) onContextClick() }}
+              >
+                {contextLabel}
+              </span>
+            )}
+
             <span style={{
               ...styles.tierBadge,
               backgroundColor: tierColor,
@@ -389,18 +390,6 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             {timeStatus === 'soon' && (
               <span style={styles.soonBadge}>Soon</span>
             )}
-
-            {/* Pick Up / Pick Back Up — all tasks get these */}
-            {task.is_paused && (
-              <button onClick={handleResume} style={styles.pickUpBtn} title="Pick Back Up (resume)">
-                <PlayIcon size={10} color="var(--text-on-accent)" /> Pick Back Up
-              </button>
-            )}
-            {!task.is_paused && !task.is_focused && (
-              <button onClick={handleFocus} style={styles.workOnBtn} title="Pick Up (start working)">
-                <PlayIcon size={10} color="var(--tier-2)" /> Pick Up
-              </button>
-            )}
           </div>
 
           {task.is_paused && task.paused_note && (
@@ -417,6 +406,34 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
         </div>
 
         <div style={styles.actions}>
+          {/* Paused tasks: Pick Back Up styled button replaces Pick Up + Put Down */}
+          {task.is_paused && (
+            <button onClick={handleResume} style={styles.pickBackUpBtn} title="Pick Back Up">
+              <PlayIcon size={10} color="var(--text-on-accent)" /> Pick Back Up
+            </button>
+          )}
+
+          {/* Non-paused tasks: Pick Up icon + Put Down icon */}
+          {!task.is_paused && !task.is_focused && (
+            <button
+              onClick={handleFocus}
+              style={styles.actionBtn}
+              title="Pick Up"
+            >
+              <PlayIcon size={14} color="var(--tier-2)" />
+            </button>
+          )}
+
+          {!task.is_paused && (
+            <button
+              onClick={() => setShowPauseInput(true)}
+              style={styles.actionBtn}
+              title="Put Down"
+            >
+              <PauseIcon color="var(--text-secondary)" size={14} />
+            </button>
+          )}
+
           <button
             onClick={handlePromote}
             disabled={!canPromote}
@@ -437,16 +454,6 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
               <span style={styles.kickBadge}>{task.kick_count}</span>
             )}
           </button>
-
-          {!task.is_paused && (
-            <button
-              onClick={() => setShowPauseInput(true)}
-              style={styles.actionBtn}
-              title="Put Down (pause)"
-            >
-              <PauseIcon color="var(--text-secondary)" size={14} />
-            </button>
-          )}
 
           <button onClick={handleDelete} style={styles.actionBtn} title="Delete task">
             <TrashIcon color="var(--text-secondary)" size={14} />
@@ -483,12 +490,11 @@ const styles = {
   completeBtn: { flexShrink: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', transition: 'border-color 0.15s, background-color 0.15s', marginTop: '2px' },
   content: { flex: 1, minWidth: 0 },
   title: { fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', lineHeight: 1.3 },
-  contextLink: { fontSize: '0.6875rem', fontWeight: 500, color: 'var(--tier-2)', cursor: 'pointer', marginTop: '0.125rem', textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.15s' },
+  contextLink: { fontSize: '0.6875rem', fontWeight: 500, color: 'var(--tier-2)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.15s' },
   badges: { display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap' },
   tierBadge: { fontSize: '0.6875rem', fontWeight: 600, padding: '0.125rem 0.5rem', borderRadius: '4px', letterSpacing: '0.01em' },
   typeBadge: { fontSize: '0.6875rem', fontWeight: 500, padding: '0.125rem 0.5rem', borderRadius: '4px' },
-  pickUpBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.1875rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-2)', padding: '0.125rem 0.5rem', borderRadius: '4px', border: 'none', cursor: 'pointer' },
-  workOnBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.1875rem', fontSize: '0.6875rem', fontWeight: 500, color: 'var(--tier-2)', backgroundColor: 'transparent', padding: '0.125rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'pointer', transition: 'border-color 0.15s' },
+  pickBackUpBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-2)', padding: '0.25rem 0.625rem', borderRadius: '6px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', height: '32px' },
   pauseNoteText: { fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '0.375rem', lineHeight: 1.4 },
   pauseTimestamp: { fontSize: '0.6875rem', color: 'var(--set-aside)' },
   actions: { display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 },
