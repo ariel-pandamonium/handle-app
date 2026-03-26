@@ -390,6 +390,13 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             {timeStatus === 'soon' && (
               <span style={styles.soonBadge}>Soon</span>
             )}
+
+            {/* Pick Back Up — inline with badges for paused tasks */}
+            {task.is_paused && (
+              <button onClick={handleResume} style={styles.pickBackUpBtn} title="Pick Back Up">
+                <PlayIcon size={10} color="var(--text-on-accent)" /> Pick Back Up
+              </button>
+            )}
           </div>
 
           {task.is_paused && task.paused_note && (
@@ -406,13 +413,6 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
         </div>
 
         <div style={styles.actions}>
-          {/* Paused tasks: Pick Back Up styled button replaces Pick Up + Put Down */}
-          {task.is_paused && (
-            <button onClick={handleResume} style={styles.pickBackUpBtn} title="Pick Back Up">
-              <PlayIcon size={10} color="var(--text-on-accent)" /> Pick Back Up
-            </button>
-          )}
-
           {/* Non-paused tasks: Pick Up icon + Put Down icon */}
           {!task.is_paused && !task.is_focused && (
             <button
