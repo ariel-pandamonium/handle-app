@@ -494,7 +494,7 @@ const styles = {
   badges: { display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap' },
   tierBadge: { fontSize: '0.6875rem', fontWeight: 600, padding: '0.125rem 0.5rem', borderRadius: '4px', letterSpacing: '0.01em' },
   typeBadge: { fontSize: '0.6875rem', fontWeight: 500, padding: '0.125rem 0.5rem', borderRadius: '4px' },
-  pickBackUpBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-2)', padding: '0.25rem 0.625rem', borderRadius: '6px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', height: '32px' },
+  pickBackUpBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.1875rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-2)', padding: '0.125rem 0.5rem', borderRadius: '4px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' },
   pauseNoteText: { fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '0.375rem', lineHeight: 1.4 },
   pauseTimestamp: { fontSize: '0.6875rem', color: 'var(--set-aside)' },
   actions: { display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 },
