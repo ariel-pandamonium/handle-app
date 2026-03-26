@@ -14,6 +14,7 @@ import ProjectDetail from './ProjectDetail'
 import SettingsMenu from './SettingsMenu'
 import PlateSettings from './PlateSettings'
 import ThemeSettings from './ThemeSettings'
+import Tutorial from './Tutorial'
 import CompletedTasksView from './CompletedTasksView'
 import UnsortedList from '../components/UnsortedList'
 
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const [selectedProjectPlate, setSelectedProjectPlate] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [settingsPage, setSettingsPage] = useState(null) // null | 'plates' | 'theme' | 'tutorial'
+  const [showTutorial, setShowTutorial] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeFilter, setActiveFilter] = useState(null)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -61,6 +63,15 @@ export default function Dashboard() {
       .select('*')
       .order('created_at', { ascending: true })
     setAllProjects(data || [])
+  }, [])
+
+  // Auto-show tutorial for first-time users
+  useEffect(() => {
+    const seen = localStorage.getItem('handle_tutorial_seen')
+    if (!seen) {
+      setShowTutorial(true)
+      localStorage.setItem('handle_tutorial_seen', 'true')
+    }
   }, [])
 
   useEffect(() => {
@@ -213,20 +224,7 @@ export default function Dashboard() {
       )
     }
     if (settingsPage === 'tutorial') {
-      // Placeholder for tutorial — will be built next
-      return (
-        <div style={styles.container}>
-          {focusOverlay}
-          <header style={styles.header}>
-            <h1 style={styles.logo}>Handle.</h1>
-            <button onClick={signOut} style={styles.signOut}>Sign out</button>
-          </header>
-          <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <p>Tutorial coming soon!</p>
-            <button onClick={() => setSettingsPage(null)} className="btn-secondary" style={{ marginTop: '1rem' }}>Back</button>
-          </div>
-        </div>
-      )
+      return <Tutorial onClose={() => setSettingsPage(null)} />
     }
 
     // Settings menu (hub)
@@ -411,6 +409,9 @@ export default function Dashboard() {
 
       {/* Global focus overlay on main dashboard too */}
       {focusOverlay}
+
+      {/* Tutorial overlay */}
+      {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
 
       {/* Sidebar + Main Layout */}
       <div className="dashboard-layout" style={{ flex: 1 }}>
