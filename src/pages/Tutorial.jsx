@@ -22,7 +22,7 @@ const SLIDES = [
   {
     key: 'urgency',
     title: 'Urgency Tiers',
-    body: "Every task has an urgency tier: Today, Tomorrow, This Week, Next Week, This Month, or Someday. You can also set a specific due date or mark a task as Scheduled with a time — like a meeting at 2:00 PM.\n\nHandle doesn't ask you to rank priorities. Instead, urgency is based on time. Tasks automatically escalate — 'This Week' becomes 'Today' when the day arrives. Miss a deadline and it becomes Overdue.\n\nYou don't manage urgency — Handle does it for you.",
+    body: "Every task has an urgency tier: Today, Tomorrow, This Week, Next Week, This Month, or Someday. You can also set a specific due date or mark a task as Scheduled with a time — like a meeting at 2:00 PM.\n\nHandle doesn't ask you to rank priorities. Instead, urgency is based on time. Every night at midnight, tasks automatically escalate. Today tasks you didn't finish become Overdue. Tomorrow becomes Today. On Thursday morning, This Week becomes Tomorrow. On Saturday morning, Next Week slides into This Week for the coming Monday.\n\nYou don't manage urgency — Handle does it for you.",
     animation: 'tiers',
   },
   {
@@ -40,7 +40,7 @@ const SLIDES = [
   {
     key: 'kick',
     title: 'Kick / Promote',
-    body: "Sometimes a task can wait. Kick the Can pushes it one tier later — 'Today' becomes 'Tomorrow,' 'This Week' becomes 'Next Week.' The kick count stays on the task forever, so you can see which ones you keep pushing off.\n\nPromote does the opposite. Here's when it matters: tasks set to 'This Week' are essentially due Friday. There's a gap between Tomorrow and This Week. At the end of your day, check your This Week and Next Week lists in the dashboard — that's your chance to Promote tasks to Tomorrow or Today, priming your brain for what's coming next. It's your end-of-day planning tool.",
+    body: "Sometimes a task can wait. Kick the Can pushes it one tier later — 'Today' becomes 'Tomorrow,' 'This Week' becomes 'Next Week.' The kick count stays on the task forever, so you can see which ones you keep pushing off.\n\nPromote does the opposite — it moves a task one tier more urgent. But most of the time you won't need to Promote manually, because Handle escalates tasks automatically. On Thursday morning, everything in This Week becomes Tomorrow. Friday morning, those become Today. If you don't finish by Saturday, they go Overdue.\n\nPromote is still useful early in the week when you want to pull something forward — like grabbing a This Week task on Tuesday and making it Tomorrow so you're ready for it.",
     animation: 'kick',
   },
   {

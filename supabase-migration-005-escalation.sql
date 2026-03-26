@@ -21,14 +21,27 @@ SET tier_assigned_date = CURRENT_DATE
 WHERE tier_assigned_date IS NULL AND is_complete = false;
 
 -- 3. Create the escalation function
--- Runs nightly at 12:01 AM ET and bumps tiers based on your rules:
---   Today (not done by midnight) → Overdue
---   Tomorrow (at midnight) → Today
---   This Week → Tomorrow on Wednesday midnight, Today on Thursday midnight,
---               Overdue on Friday midnight
---   Next Week → This Week on Friday midnight
---   This Month → This Week when entering the last week of the month
---   Someday → never escalates
+-- Runs nightly at 12:01 AM ET and bumps tiers based on these rules:
+--
+-- EVERY NIGHT (7 days a week):
+--   Rule 1: Today → Overdue
+--   Rule 2: Tomorrow → Today
+--
+-- WEEKLY CYCLE (This Week):
+--   Thursday 12:01 AM (dow=4): This Week → Tomorrow
+--   Friday 12:01 AM (dow=5):   This Week → Today
+--   Saturday 12:01 AM (dow=6): This Week → Overdue
+--
+-- WEEKLY CYCLE (Next Week):
+--   Saturday 12:01 AM (dow=6): Next Week → This Week
+--
+-- MONTHLY:
+--   At or past the last Monday of the month: This Month → This Week
+--
+-- NEVER: Someday stays put
+--
+-- ORDER MATTERS: Rules 1 & 2 clear Today/Tomorrow BEFORE
+-- Rules 3-5 refill those buckets. This prevents double-escalation.
 CREATE OR REPLACE FUNCTION public.escalate_tiers()
 RETURNS void AS $$
 DECLARE
@@ -45,7 +58,6 @@ BEGIN
   );
 
   -- Calculate the Monday that starts the last week of the month
-  -- Last week = the last 7 days of the month, starting from the Monday on or before the 25th-ish
   last_monday := (DATE_TRUNC('month', CURRENT_DATE) + (days_in_month - 1) * INTERVAL '1 day')::DATE;
   -- Walk back to Monday
   WHILE EXTRACT(DOW FROM last_monday) != 1 LOOP
@@ -53,7 +65,7 @@ BEGIN
   END LOOP;
 
   -- ========================================
-  -- RULE 1: Today → Overdue
+  -- RULE 1: Today → Overdue (every night)
   -- Any "Today" task that survived past midnight becomes Overdue
   -- ========================================
   UPDATE public.tasks
@@ -64,7 +76,7 @@ BEGIN
     AND is_paused = false;
 
   -- ========================================
-  -- RULE 2: Tomorrow → Today
+  -- RULE 2: Tomorrow → Today (every night)
   -- At midnight, tomorrow has arrived
   -- ========================================
   UPDATE public.tasks
@@ -77,14 +89,11 @@ BEGIN
 
   -- ========================================
   -- RULE 3: This Week escalation
-  -- Wednesday midnight → Tomorrow
-  -- Thursday midnight → Today
-  -- Friday midnight → Overdue
-  -- (Wed=3, Thu=4, Fri=5)
+  -- Saturday 12:01 AM (dow=6): This Week → Overdue (week is over)
+  -- Friday 12:01 AM (dow=5):   This Week → Today (last day)
+  -- Thursday 12:01 AM (dow=4): This Week → Tomorrow (2 days left)
   -- ========================================
-
-  -- Friday midnight: This Week → Overdue
-  IF today_dow = 5 THEN
+  IF today_dow = 6 THEN
     UPDATE public.tasks
     SET urgency_tier = 'Overdue',
         updated_at = NOW()
@@ -92,8 +101,7 @@ BEGIN
       AND is_complete = false
       AND is_paused = false;
 
-  -- Thursday midnight: This Week → Today
-  ELSIF today_dow = 4 THEN
+  ELSIF today_dow = 5 THEN
     UPDATE public.tasks
     SET urgency_tier = 'Today',
         tier_assigned_date = CURRENT_DATE,
@@ -102,8 +110,7 @@ BEGIN
       AND is_complete = false
       AND is_paused = false;
 
-  -- Wednesday midnight: This Week → Tomorrow
-  ELSIF today_dow = 3 THEN
+  ELSIF today_dow = 4 THEN
     UPDATE public.tasks
     SET urgency_tier = 'Tomorrow',
         tier_assigned_date = CURRENT_DATE,
@@ -115,10 +122,12 @@ BEGIN
 
   -- ========================================
   -- RULE 4: Next Week → This Week
-  -- On Friday midnight (start of weekend), next week items
-  -- become this week items
+  -- Saturday 12:01 AM (dow=6): weekend starts, next week's
+  -- work slides into This Week for the coming Monday
+  -- Runs AFTER Rule 3, so new This Week items won't get
+  -- caught by the This Week escalation in the same run.
   -- ========================================
-  IF today_dow = 5 THEN
+  IF today_dow = 6 THEN
     UPDATE public.tasks
     SET urgency_tier = 'This Week',
         tier_assigned_date = CURRENT_DATE,
@@ -130,9 +139,11 @@ BEGIN
 
   -- ========================================
   -- RULE 5: This Month → This Week
-  -- When we enter the last week of the month
+  -- When we are at or past the last Monday of the month.
+  -- Uses >= so tasks added to "This Month" mid-last-week
+  -- still get caught.
   -- ========================================
-  IF CURRENT_DATE = last_monday THEN
+  IF CURRENT_DATE >= last_monday THEN
     UPDATE public.tasks
     SET urgency_tier = 'This Week',
         tier_assigned_date = CURRENT_DATE,
