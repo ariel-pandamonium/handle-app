@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { getEffectiveTier, sortByUrgency, getTierColor } from '../lib/urgency'
 import AddProjectForm from '../components/AddProjectForm'
 import AddTaskForm from '../components/AddTaskForm'
+import TaskCard from '../components/TaskCard'
 import { BackIcon, PlusIcon, FlameIcon, PlayIcon } from '../components/Icons'
 
 /**
@@ -120,6 +121,7 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
   const overdueCount = allTasks.filter(t => getEffectiveTier(t) === 'Overdue').length
   const todayCount = allTasks.filter(t => getEffectiveTier(t) === 'Today').length
   const billableCount = allTasks.filter(t => t.task_type === 'Billable').length
+  const pausedCount = allTasks.filter(t => t.is_paused && !t.is_complete).length
 
   // Set Aside this plate
   const handleSetAside = async () => {
@@ -201,28 +203,18 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
               </div>
               <div style={urgencyExpanded ? styles.urgencyListExpanded : styles.urgencyList}>
                 {urgencyPreview.map((task) => {
-                  const tier = getEffectiveTier(task)
-                  const tierColor = getTierColor(tier)
-                  // Find which sub-plate this task belongs to
                   const proj = task.project_id ? projects.find(p => p.id === task.project_id) : null
-
                   return (
-                    <div key={task.id} style={{ ...styles.urgencyRow, borderLeftColor: tierColor }}>
-                      <span style={{ ...styles.urgencyDot, backgroundColor: tierColor }} />
-                      <div style={styles.urgencyInfo}>
-                        <span style={styles.urgencyTaskTitle}>{task.title}</span>
-                        <span style={styles.urgencyMeta}>
-                          {tier}{proj ? ` · ${proj.name}` : ' · General'}
-                        </span>
-                      </div>
-                      {task.is_paused ? (
-                        <button onClick={() => handleResume(task)} style={styles.miniPickUpBtn}><PlayIcon size={9} color="var(--text-on-accent)" /> Pick Back Up</button>
-                      ) : !task.is_focused ? (
-                        <button onClick={() => handleFocusTask(task)} style={styles.miniWorkBtn}>
-                          <PlayIcon size={9} color="var(--tier-2)" /> Pick Up
-                        </button>
-                      ) : null}
-                    </div>
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onUpdate={fetchData}
+                      onDelete={fetchData}
+                      pausedCount={pausedCount}
+                      onTaskFocused={onTaskFocused}
+                      contextLabel={proj ? proj.name : null}
+                      onContextClick={proj ? () => onSelectProject(proj) : undefined}
+                    />
                   )
                 })}
               </div>
@@ -311,26 +303,16 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
             <div style={styles.freeFloatingSection}>
               <h3 style={styles.sectionLabel}>General Tasks</h3>
               <div style={styles.freeFloatingList}>
-                {freeFloatingTasks.map((task) => {
-                  const tier = getEffectiveTier(task)
-                  const tierColor = getTierColor(tier)
-                  return (
-                    <div key={task.id} style={{ ...styles.urgencyRow, borderLeftColor: tierColor }}>
-                      <span style={{ ...styles.urgencyDot, backgroundColor: tierColor }} />
-                      <div style={styles.urgencyInfo}>
-                        <span style={styles.urgencyTaskTitle}>{task.title}</span>
-                        <span style={styles.urgencyMeta}>{tier}</span>
-                      </div>
-                      {task.is_paused ? (
-                        <button onClick={() => handleResume(task)} style={styles.miniPickUpBtn}><PlayIcon size={9} color="var(--text-on-accent)" /> Pick Back Up</button>
-                      ) : !task.is_focused ? (
-                        <button onClick={() => handleFocusTask(task)} style={styles.miniWorkBtn}>
-                          <PlayIcon size={9} color="var(--tier-2)" /> Pick Up
-                        </button>
-                      ) : null}
-                    </div>
-                  )
-                })}
+                {freeFloatingTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onUpdate={fetchData}
+                    onDelete={fetchData}
+                    pausedCount={pausedCount}
+                    onTaskFocused={onTaskFocused}
+                  />
+                ))}
               </div>
             </div>
           )}

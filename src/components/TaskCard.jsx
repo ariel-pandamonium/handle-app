@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { getEffectiveTier, getNextKickTier, getNextPromoteTier, getTierColor, isOverdueTwoPlusDays, TIER_ORDER } from '../lib/urgency'
 import { FlameIcon, BootIcon, CheckIcon, TrashIcon, PauseIcon, PlayIcon, PromoteIcon } from './Icons'
 
-export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, onTaskFocused }) {
+export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, onTaskFocused, contextLabel, onContextClick }) {
   // Parse time prefix from title: "[HH:MM]Title" → time + display title
   const timeMatch = task.title.match(/^\[(\d{2}:\d{2})\](.*)/)
   const scheduledTimeRaw = timeMatch ? timeMatch[1] : null  // "14:30"
@@ -346,6 +346,15 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             {' '}{displayTitle}
           </span>
 
+          {contextLabel && (
+            <span
+              style={styles.contextLink}
+              onClick={(e) => { e.stopPropagation(); if (onContextClick) onContextClick() }}
+            >
+              {contextLabel}
+            </span>
+          )}
+
           <div style={styles.badges}>
             <span style={{
               ...styles.tierBadge,
@@ -474,6 +483,7 @@ const styles = {
   completeBtn: { flexShrink: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', transition: 'border-color 0.15s, background-color 0.15s', marginTop: '2px' },
   content: { flex: 1, minWidth: 0 },
   title: { fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', lineHeight: 1.3 },
+  contextLink: { fontSize: '0.6875rem', fontWeight: 500, color: 'var(--tier-2)', cursor: 'pointer', marginTop: '0.125rem', textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.15s' },
   badges: { display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap' },
   tierBadge: { fontSize: '0.6875rem', fontWeight: 600, padding: '0.125rem 0.5rem', borderRadius: '4px', letterSpacing: '0.01em' },
   typeBadge: { fontSize: '0.6875rem', fontWeight: 500, padding: '0.125rem 0.5rem', borderRadius: '4px' },

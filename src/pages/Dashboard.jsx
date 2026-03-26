@@ -447,9 +447,11 @@ export default function Dashboard() {
                   projects={allProjects}
                   filter={activeFilter}
                   onClose={() => setActiveFilter(null)}
-                  onFocusTask={handleFocusTask}
-                  onResumeTask={handleResumeTask}
-                  onTaskUpdated={fetchAllTasks}
+                  onTaskFocused={(task) => setGlobalFocusTask(task)}
+                  onTaskUpdated={() => { fetchAllTasks(); fetchAllProjects() }}
+                  pausedCount={pausedCount}
+                  onNavigateToPlate={(plate) => { setActiveFilter(null); setSelectedPlate(plate) }}
+                  onNavigateToProject={(project, plate) => { setActiveFilter(null); handleProjectClick(project, plate) }}
                 />
               )}
 

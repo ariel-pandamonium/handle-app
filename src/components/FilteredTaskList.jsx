@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { getEffectiveTier, getNextPromoteTier, getTierColor, sortByUrgency } from '../lib/urgency'
-import { supabase } from '../lib/supabase'
-import { FlameIcon, PlayIcon, PromoteIcon } from './Icons'
+import { getEffectiveTier, sortByUrgency } from '../lib/urgency'
+import TaskCard from './TaskCard'
 
 /**
  * Filtered task list — shown when a sidebar stat is clicked.
- * Displays tasks matching a filter, grouped with plate name, sorted by urgency.
- * Smart sub-filters: plate/subplate on all lists, task type on all except 'billable'.
+ * Displays tasks matching a filter, using the standard TaskCard component.
+ * Shows Plate → Sub-plate context below each task title.
  */
-export default function FilteredTaskList({ tasks, plates, projects = [], filter, onClose, onFocusTask, onResumeTask, onTaskUpdated }) {
+export default function FilteredTaskList({ tasks, plates, projects = [], filter, onClose, onTaskFocused, onTaskUpdated, pausedCount = 0, onNavigateToPlate, onNavigateToProject }) {
   const [filterPlate, setFilterPlate] = useState('')
   const [filterType, setFilterType] = useState('')
 
@@ -70,7 +69,6 @@ export default function FilteredTaskList({ tasks, plates, projects = [], filter,
   // Apply sub-filters
   if (filterPlate) {
     filtered = filtered.filter(t => {
-      // Match by plate_id or project_id (subplate)
       if (t.plate_id === filterPlate) return true
       if (t.project_id === filterPlate) return true
       return false
@@ -83,16 +81,15 @@ export default function FilteredTaskList({ tasks, plates, projects = [], filter,
   // Sort by urgency (most urgent first)
   const sorted = sortByUrgency(filtered)
 
-  // Map plate IDs to names
+  // Map plate IDs to plate objects
   const plateMap = {}
-  plates.forEach(p => { plateMap[p.id] = p.name })
+  plates.forEach(p => { plateMap[p.id] = p })
 
-  // Map project IDs to names (subplates)
+  // Map project IDs to project objects
   const projectMap = {}
-  projects.forEach(p => { projectMap[p.id] = p.name })
+  projects.forEach(p => { projectMap[p.id] = p })
 
   // Build plate/subplate options for the filter dropdown
-  // Group: plate names, then indented subplates under each
   const plateOptions = []
   const activePlates = plates.filter(p => !p.is_set_aside).sort((a, b) => a.name.localeCompare(b.name))
   activePlates.forEach(plate => {
@@ -102,6 +99,26 @@ export default function FilteredTaskList({ tasks, plates, projects = [], filter,
       plateOptions.push({ id: sub.id, label: `  └ ${sub.name}` })
     })
   })
+
+  // Build context label and click handler for a task
+  const getContext = (task) => {
+    const plate = plateMap[task.plate_id]
+    const project = task.project_id ? projectMap[task.project_id] : null
+    const plateName = plate ? plate.name : 'Unknown'
+    const projectName = project ? project.name : null
+
+    const label = projectName ? `${plateName} → ${projectName}` : plateName
+
+    const handleClick = () => {
+      if (project && onNavigateToProject) {
+        onNavigateToProject(project, plate)
+      } else if (plate && onNavigateToPlate) {
+        onNavigateToPlate(plate)
+      }
+    }
+
+    return { label, handleClick }
+  }
 
   return (
     <div style={styles.container}>
@@ -142,60 +159,18 @@ export default function FilteredTaskList({ tasks, plates, projects = [], filter,
       ) : (
         <div style={styles.list}>
           {sorted.map((task) => {
-            const tier = getEffectiveTier(task)
-            const tierColor = getTierColor(tier)
-            const plateName = plateMap[task.plate_id] || 'Unknown'
-            const projectName = task.project_id ? projectMap[task.project_id] : null
-            const nextPromote = getNextPromoteTier(task.urgency_tier)
-
-            const handlePromote = async () => {
-              if (!nextPromote) return
-              await supabase
-                .from('tasks')
-                .update({ urgency_tier: nextPromote, updated_at: new Date().toISOString() })
-                .eq('id', task.id)
-              if (onTaskUpdated) onTaskUpdated()
-            }
-
+            const ctx = getContext(task)
             return (
-              <div key={task.id} style={{ ...styles.taskRow, borderLeftColor: tierColor }}>
-                <div style={styles.taskInfo}>
-                  <span style={styles.taskTitle}>{task.title}</span>
-                  <div style={styles.taskMeta}>
-                    <span style={styles.plateBadge}>{plateName}{projectName ? ` › ${projectName}` : ''}</span>
-                    <span style={{
-                      ...styles.tierBadge,
-                      backgroundColor: tierColor,
-                      color: tier === 'Overdue' || tier === 'Today' || tier === 'Tomorrow'
-                        ? 'var(--text-on-accent)' : 'var(--text-primary)',
-                    }}>
-                      {tier}
-                    </span>
-                    {task.kick_count > 0 && (
-                      <span style={styles.kickBadge}>kicked {task.kick_count}x</span>
-                    )}
-                    {task.is_paused && task.paused_note && (
-                      <span style={styles.pauseNote}>"{task.paused_note}"</span>
-                    )}
-                    {/* Promote button */}
-                    {nextPromote && (
-                      <button onClick={handlePromote} style={styles.miniPromoteBtn} title={`Promote to ${nextPromote}`}>
-                        <PromoteIcon size={9} color="var(--tier-2)" /> {nextPromote}
-                      </button>
-                    )}
-                    {/* Pick Up / Pick Back Up buttons */}
-                    {task.is_paused && onResumeTask ? (
-                      <button onClick={() => onResumeTask(task)} style={styles.miniPickUpBtn}>
-                        <PlayIcon size={9} color="var(--text-on-accent)" /> Pick Back Up
-                      </button>
-                    ) : !task.is_paused && !task.is_focused && onFocusTask ? (
-                      <button onClick={() => onFocusTask(task)} style={styles.miniWorkBtn}>
-                        <PlayIcon size={9} color="var(--tier-2)" /> Pick Up
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+              <TaskCard
+                key={task.id}
+                task={task}
+                onUpdate={onTaskUpdated}
+                onDelete={onTaskUpdated}
+                pausedCount={pausedCount}
+                onTaskFocused={onTaskFocused}
+                contextLabel={ctx.label}
+                onContextClick={ctx.handleClick}
+              />
             )
           })}
         </div>
@@ -262,93 +237,6 @@ const styles = {
   list: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.375rem',
-  },
-  taskRow: {
-    padding: '0.625rem 0.75rem',
-    borderRadius: '6px',
-    backgroundColor: 'var(--bg-subtle)',
-    borderLeft: '3px solid',
-  },
-  taskInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-  },
-  taskTitle: {
-    fontSize: '0.9375rem',
-    fontWeight: 500,
-  },
-  taskMeta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.375rem',
-    flexWrap: 'wrap',
-  },
-  plateBadge: {
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    color: 'var(--text-secondary)',
-    backgroundColor: 'var(--border-light)',
-    padding: '0.0625rem 0.375rem',
-    borderRadius: '3px',
-  },
-  tierBadge: {
-    fontSize: '0.625rem',
-    fontWeight: 600,
-    padding: '0.0625rem 0.375rem',
-    borderRadius: '3px',
-  },
-  kickBadge: {
-    fontSize: '0.625rem',
-    color: 'var(--tier-3)',
-    fontStyle: 'italic',
-  },
-  pauseNote: {
-    fontSize: '0.6875rem',
-    color: 'var(--text-secondary)',
-    fontStyle: 'italic',
-  },
-  miniPromoteBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.125rem',
-    fontSize: '0.625rem',
-    fontWeight: 500,
-    color: 'var(--tier-2)',
-    backgroundColor: 'transparent',
-    padding: '0.125rem 0.375rem',
-    borderRadius: '4px',
-    border: '1px solid var(--tier-2)',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  },
-  miniWorkBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.125rem',
-    fontSize: '0.625rem',
-    fontWeight: 500,
-    color: 'var(--tier-2)',
-    backgroundColor: 'transparent',
-    padding: '0.125rem 0.375rem',
-    borderRadius: '4px',
-    border: '1px solid var(--border)',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  },
-  miniPickUpBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.125rem',
-    fontSize: '0.625rem',
-    fontWeight: 600,
-    color: 'var(--text-on-accent)',
-    backgroundColor: 'var(--tier-2)',
-    padding: '0.125rem 0.375rem',
-    borderRadius: '4px',
-    border: 'none',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
+    gap: '0.5rem',
   },
 }
