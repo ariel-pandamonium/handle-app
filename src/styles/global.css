@@ -1,0 +1,179 @@
+/* ============================================================
+   Handle. Global Styles
+   ============================================================ */
+
+@import './palettes.css';
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.375rem; }
+h3 { font-size: 1.125rem; }
+
+/* Links */
+a {
+  color: var(--tier-2);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons — base */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Primary button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  background-color: var(--tier-2);
+  color: var(--text-on-accent);
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  transition: background-color 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: var(--tier-1);
+}
+
+/* Secondary button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.btn-secondary:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--text-secondary);
+}
+
+/* Input fields */
+.input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  transition: border-color 0.15s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--tier-2);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Cards */
+.card {
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: box-shadow 0.15s ease;
+}
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Dashboard layout — sidebar + main */
+.dashboard-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.dashboard-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile: sidebar collapses */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+  .dashboard-sidebar {
+    width: 100%;
+  }
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+  .sidebar-mobile-toggle {
+    display: block !important;
+  }
+}
+
+/* Desktop: hide mobile toggle, show sidebar */
+@media (min-width: 769px) {
+  .sidebar-mobile-toggle {
+    display: none !important;
+  }
+  .sidebar-close-btn {
+    display: none !important;
+  }
+}
+
+/* Utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

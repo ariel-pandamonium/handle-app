@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment variables (secrets — never upload)
+.env
+.env.local
+.env.production
+
+# Build output
+dist/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

@@ -1,0 +1,79 @@
+/* ============================================================
+   Handle. Palette System
+   Each palette defines 5 urgency tiers (darkest to lightest),
+   plus nudge bar, set-aside gray, and background base.
+   Switch palettes by changing the class on <html>.
+   ============================================================ */
+
+/* Default: Ember — terracotta / burnt orange */
+:root,
+.palette-ember {
+  --tier-1: #8B2500;      /* Overdue — deep brick */
+  --tier-2: #C0501F;      /* Today — warm terracotta */
+  --tier-3: #D4845A;      /* This Week — mid copper */
+  --tier-4: #E8B89A;      /* Next Week / This Month — light peach */
+  --tier-5: #F5E0D3;      /* Someday — barely-blush */
+  --nudge-bar: #D4845A;   /* Tier 3 shade for billable nudge */
+  --set-aside: #C8C2BE;   /* Warm gray */
+  --bg-base: #FFFFFF;
+  --bg-subtle: #FDF8F5;   /* Faintest Tier 5 tint */
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-on-accent: #FFFFFF;
+  --border: #E5E5E5;
+  --border-light: #F0F0F0;
+}
+
+/* Tide — slate blue-gray */
+.palette-tide {
+  --tier-1: #1B2F4B;      /* Dark navy */
+  --tier-2: #2E5481;      /* Steel blue */
+  --tier-3: #5B86AD;      /* Mid slate */
+  --tier-4: #9DB8D4;      /* Light blue-gray */
+  --tier-5: #DAE5EF;      /* Pale blue-white */
+  --nudge-bar: #5B86AD;
+  --set-aside: #B8BCC0;
+  --bg-base: #FFFFFF;
+  --bg-subtle: #F4F7FA;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-on-accent: #FFFFFF;
+  --border: #E5E5E5;
+  --border-light: #F0F0F0;
+}
+
+/* Grove — forest green / olive */
+.palette-grove {
+  --tier-1: #2D3B1F;      /* Deep moss */
+  --tier-2: #4A6332;      /* Forest green */
+  --tier-3: #7A9A5C;      /* Sage-olive */
+  --tier-4: #AEBF9A;      /* Light sage */
+  --tier-5: #DDE6D4;      /* Barely-sage */
+  --nudge-bar: #7A9A5C;
+  --set-aside: #B8BCB4;
+  --bg-base: #FFFFFF;
+  --bg-subtle: #F6F8F4;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-on-accent: #FFFFFF;
+  --border: #E5E5E5;
+  --border-light: #F0F0F0;
+}
+
+/* Dusk — muted violet / mauve */
+.palette-dusk {
+  --tier-1: #3D2451;      /* Deep plum */
+  --tier-2: #6B3F8A;      /* Muted violet */
+  --tier-3: #9670AE;      /* Mid mauve */
+  --tier-4: #C1A8D4;      /* Light lavender */
+  --tier-5: #E6DCF0;      /* Barely-lavender */
+  --nudge-bar: #9670AE;
+  --set-aside: #BCB8C0;
+  --bg-base: #FFFFFF;
+  --bg-subtle: #F9F6FC;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-on-accent: #FFFFFF;
+  --border: #E5E5E5;
+  --border-light: #F0F0F0;
+}
