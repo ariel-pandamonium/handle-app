@@ -11,7 +11,9 @@ import FilteredTaskList from '../components/FilteredTaskList'
 import PlateDetail from './PlateDetail'
 import PlateSubDashboard from './PlateSubDashboard'
 import ProjectDetail from './ProjectDetail'
+import SettingsMenu from './SettingsMenu'
 import PlateSettings from './PlateSettings'
+import ThemeSettings from './ThemeSettings'
 import CompletedTasksView from './CompletedTasksView'
 import UnsortedList from '../components/UnsortedList'
 
@@ -27,6 +29,7 @@ export default function Dashboard() {
   const [selectedProject, setSelectedProject] = useState(null)
   const [selectedProjectPlate, setSelectedProjectPlate] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsPage, setSettingsPage] = useState(null) // null | 'plates' | 'theme' | 'tutorial'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeFilter, setActiveFilter] = useState(null)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -108,6 +111,7 @@ export default function Dashboard() {
     setSelectedProject(null)
     setSelectedProjectPlate(null)
     setShowSettings(false)
+    setSettingsPage(null)
     setShowCompleted(false)
     setShowUnsorted(false)
     fetchAllTasks()
@@ -181,8 +185,51 @@ export default function Dashboard() {
     </div>
   ) : null
 
-  // ===== PLATE SETTINGS VIEW =====
+  // ===== SETTINGS VIEWS =====
   if (showSettings) {
+    // Sub-pages within settings
+    if (settingsPage === 'plates') {
+      return (
+        <div style={styles.container}>
+          {focusOverlay}
+          <header style={styles.header}>
+            <h1 style={styles.logo}>Handle.</h1>
+            <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          </header>
+          <PlateSettings plates={plates} onBack={() => setSettingsPage(null)} onUpdate={() => { fetchPlates(); fetchAllProjects() }} />
+        </div>
+      )
+    }
+    if (settingsPage === 'theme') {
+      return (
+        <div style={styles.container}>
+          {focusOverlay}
+          <header style={styles.header}>
+            <h1 style={styles.logo}>Handle.</h1>
+            <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          </header>
+          <ThemeSettings onBack={() => setSettingsPage(null)} />
+        </div>
+      )
+    }
+    if (settingsPage === 'tutorial') {
+      // Placeholder for tutorial — will be built next
+      return (
+        <div style={styles.container}>
+          {focusOverlay}
+          <header style={styles.header}>
+            <h1 style={styles.logo}>Handle.</h1>
+            <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          </header>
+          <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <p>Tutorial coming soon!</p>
+            <button onClick={() => setSettingsPage(null)} className="btn-secondary" style={{ marginTop: '1rem' }}>Back</button>
+          </div>
+        </div>
+      )
+    }
+
+    // Settings menu (hub)
     return (
       <div style={styles.container}>
         {focusOverlay}
@@ -190,7 +237,7 @@ export default function Dashboard() {
           <h1 style={styles.logo}>Handle.</h1>
           <button onClick={signOut} style={styles.signOut}>Sign out</button>
         </header>
-        <PlateSettings plates={plates} onBack={handleBack} onUpdate={() => { fetchPlates(); fetchAllProjects() }} />
+        <SettingsMenu onBack={handleBack} onNavigate={(page) => setSettingsPage(page)} />
       </div>
     )
   }

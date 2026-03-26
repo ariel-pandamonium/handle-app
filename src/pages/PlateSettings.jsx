@@ -362,6 +362,7 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
           <PlusIcon size={16} color="var(--tier-2)" /> Add New Plate
         </button>
       )}
+
     </div>
   )
 }
@@ -717,4 +718,5 @@ const styles = {
     fontSize: '0.875rem',
     width: '100%',
   },
+
 }
