@@ -137,36 +137,8 @@ export function getEffectiveTier(task) {
     return 'Someday'
   }
 
-  // No due date: check if the stored tier should escalate
-  const tier = task.urgency_tier
-  switch (tier) {
-    case 'Today':
-      if (now > endOfTodayET()) return 'Overdue'
-      break
-    case 'Tomorrow':
-      if (now > endOfTomorrowET()) return 'Overdue'
-      // If tomorrow has arrived, it's now Today
-      if (now > endOfTodayET()) return 'Today'
-      break
-    case 'This Week':
-      if (now > endOfWeekET()) return 'Overdue'
-      break
-    case 'Next Week': {
-      const weekEnd = endOfWeekET()
-      if (now > endOfNextWeekET()) return 'Overdue'
-      // If next week has started, it's now This Week
-      if (now > weekEnd) return 'This Week'
-      break
-    }
-    case 'This Month':
-      if (now > endOfMonthET()) return 'Overdue'
-      break
-    case 'Someday':
-      // Never escalates
-      break
-  }
-
-  return tier
+  // No due date: trust the database tier (cron job handles escalation)
+  return task.urgency_tier
 }
 
 /**
