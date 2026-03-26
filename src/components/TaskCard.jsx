@@ -72,6 +72,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
       .update({
         urgency_tier: nextKick,
         kick_count: task.kick_count + 1,
+        tier_assigned_date: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString(),
       })
       .eq('id', task.id)
@@ -85,6 +86,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
       .from('tasks')
       .update({
         urgency_tier: nextPromote,
+        tier_assigned_date: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString(),
       })
       .eq('id', task.id)
@@ -116,6 +118,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
       finalTitle = `[${scheduledTimeRaw}]${finalTitle}`
     }
 
+    const tierChanged = editTier !== task.urgency_tier
     const { error } = await supabase
       .from('tasks')
       .update({
@@ -124,6 +127,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
         task_type: editType,
         due_date: editDueDate || null,
         kick_count: newKickCount,
+        ...(tierChanged ? { tier_assigned_date: new Date().toISOString().split('T')[0] } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', task.id)

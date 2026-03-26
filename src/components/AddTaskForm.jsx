@@ -109,6 +109,7 @@ export default function AddTaskForm({ plateId, projectId = null, plates = [], pr
       urgency_tier: resolvedTier,
       task_type: taskType,
       due_date: dueDate || null,
+      tier_assigned_date: new Date().toISOString().split('T')[0],
     }
 
     const { error } = await supabase.from('tasks').insert(taskData)

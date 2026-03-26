@@ -190,6 +190,7 @@ export const useDropStore = create((set, get) => ({
       urgency_tier: taskData.urgency_tier,
       task_type: taskData.task_type,
       due_date: taskData.due_date || null,
+      tier_assigned_date: new Date().toISOString().split('T')[0],
     })
 
     if (taskError) return { error: taskError.message }
