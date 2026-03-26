@@ -55,7 +55,7 @@ export default function Sidebar({ tasks, plates, projects, activeFilter, onFilte
   }
 
   return (
-    <aside style={styles.sidebar}>
+    <aside className="dashboard-sidebar" style={styles.sidebar}>
       <div style={styles.sidebarInner}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Dashboard</h2>
