@@ -83,6 +83,17 @@ export default function Dashboard() {
     fetchDropItems()
   }, [fetchPlates, fetchPreferences, fetchAllTasks, fetchAllProjects, fetchCompletedCount, fetchDropItems])
 
+  // Listen for data changes from DropFloatingButton (Drop It / New Task)
+  useEffect(() => {
+    const handleDataChanged = () => {
+      fetchAllTasks()
+      fetchDropItems()
+      fetchAllProjects()
+    }
+    window.addEventListener('handle-data-changed', handleDataChanged)
+    return () => window.removeEventListener('handle-data-changed', handleDataChanged)
+  }, [fetchAllTasks, fetchDropItems, fetchAllProjects])
+
   // Focus a task directly from main dashboard (Pick Up)
   const handleFocusTask = async (task) => {
     const history = task.pause_history || []
@@ -110,7 +121,7 @@ export default function Dashboard() {
         is_focused: true,
         focused_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        pause_history: [...history, { action: 'resumed', note: task.paused_note || null, prev_paused_note: task.paused_note || null, timestamp: new Date().toISOString() }],
+        pause_history: [...history, { action: 'resumed', prev_paused_note: task.paused_note || null, timestamp: new Date().toISOString() }],
       })
       .eq('id', task.id)
     if (!error) fetchAllTasks()

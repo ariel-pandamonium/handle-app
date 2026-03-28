@@ -22,7 +22,6 @@ export default function InHandPanel({ tasks, onUpdate }) {
         updated_at: new Date().toISOString(),
         pause_history: [...history, {
           action: 'resumed',
-          note: task.paused_note || null,
           prev_paused_note: task.paused_note || null,
           timestamp: new Date().toISOString(),
         }],

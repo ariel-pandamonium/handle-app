@@ -35,7 +35,7 @@ export default function App() {
   return session ? (
     <>
       <Dashboard />
-      <DropFloatingButton />
+      <DropFloatingButton onTaskAdded={() => window.dispatchEvent(new Event('handle-data-changed'))} />
     </>
   ) : <Login />
 }

@@ -70,7 +70,7 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
   const handleResume = async (task) => {
     const history = task.pause_history || []
     // Immediately tell Dashboard to show the overlay
-    const updatedTask = { ...task, is_paused: false, paused_note: null, paused_at: null, is_focused: true, focused_at: new Date().toISOString(), pause_history: [...history, { action: 'resumed', note: task.paused_note || null, prev_paused_note: task.paused_note || null, timestamp: new Date().toISOString() }] }
+    const updatedTask = { ...task, is_paused: false, paused_note: null, paused_at: null, is_focused: true, focused_at: new Date().toISOString(), pause_history: [...history, { action: 'resumed', prev_paused_note: task.paused_note || null, timestamp: new Date().toISOString() }] }
     if (onTaskFocused) onTaskFocused(updatedTask)
     const { error } = await supabase
       .from('tasks')

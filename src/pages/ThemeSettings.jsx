@@ -104,6 +104,8 @@ const styles = {
     backgroundColor: 'var(--bg-base)',
     cursor: 'pointer',
     transition: 'border-color 0.15s ease',
+    outline: 'none',
+    WebkitTapHighlightColor: 'transparent',
   },
   paletteCardActive: {
     borderColor: 'var(--tier-2)',

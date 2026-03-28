@@ -182,7 +182,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
   // Resume (Pick Back Up) task — with history logging
   const handleResume = async () => {
     const history = task.pause_history || []
-    const updatedTask = { ...task, is_paused: false, paused_note: null, paused_at: null, is_focused: true, focused_at: new Date().toISOString(), pause_history: [...history, { action: 'resumed', note: task.paused_note || null, prev_paused_note: task.paused_note || null, timestamp: new Date().toISOString() }] }
+    const updatedTask = { ...task, is_paused: false, paused_note: null, paused_at: null, is_focused: true, focused_at: new Date().toISOString(), pause_history: [...history, { action: 'resumed', prev_paused_note: task.paused_note || null, timestamp: new Date().toISOString() }] }
     if (onTaskFocused) onTaskFocused(updatedTask)
 
     const { error } = await supabase
