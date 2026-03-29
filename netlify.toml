@@ -1,6 +1,6 @@
 # Handle. — Netlify configuration
 [build]
-  command = "npm install && npm run build"
+  command = "npm ci && npm run build"
   publish = "dist"
 
 # Single-page app: redirect all routes to index.html
