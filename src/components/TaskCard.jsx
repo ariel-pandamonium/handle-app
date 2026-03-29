@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getEffectiveTier, getNextKickTier, getNextPromoteTier, getTierColor, isOverdueTwoPlusDays, TIER_ORDER } from '../lib/urgency'
-import { FlameIcon, BootIcon, CheckIcon, TrashIcon, PauseIcon, PlayIcon, PromoteIcon } from './Icons'
+import { FlameIcon, BootIcon, CheckIcon, TrashIcon, PauseIcon, PlayIcon, PromoteIcon, GripIcon, NoteIcon, ChevronDownIcon, ChevronUpIcon } from './Icons'
 
-export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, onTaskFocused, contextLabel, onContextClick }) {
+export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, onTaskFocused, contextLabel, onContextClick, showDragHandle = false, dragHandleProps = {}, dragHandleRef = null }) {
   // Parse time prefix from title: "[HH:MM]Title" → time + display title
   const timeMatch = task.title.match(/^\[(\d{2}:\d{2})\](.*)/)
   const scheduledTimeRaw = timeMatch ? timeMatch[1] : null  // "14:30"
@@ -14,8 +14,11 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
   const [editTier, setEditTier] = useState(task.urgency_tier)
   const [editType, setEditType] = useState(task.task_type)
   const [editDueDate, setEditDueDate] = useState(task.due_date ? task.due_date.split('T')[0] : '')
+  const [editNotes, setEditNotes] = useState(task.notes || '')
+  const [showEditNotes, setShowEditNotes] = useState(false)
   const [showPauseInput, setShowPauseInput] = useState(false)
   const [pauseNote, setPauseNote] = useState('')
+  const [formError, setFormError] = useState('')
 
   const effectiveTier = getEffectiveTier(task)
   const isOverdue = effectiveTier === 'Overdue'
@@ -104,7 +107,11 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
 
   // Save full edit (title + urgency + type + due date)
   const handleSaveEdit = async () => {
-    if (!editTitle.trim()) return
+    setFormError('')
+    if (!editTitle.trim()) {
+      setFormError('Task needs a title.')
+      return
+    }
 
     // Check if tier was moved later (increment kick count per spec)
     const tierIndex = TIER_ORDER.indexOf(editTier)
@@ -127,6 +134,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
         task_type: editType,
         due_date: editDueDate || null,
         kick_count: newKickCount,
+        notes: editNotes.trim() || null,
         ...(tierChanged ? { tier_assigned_date: new Date().toISOString().split('T')[0] } : {}),
         updated_at: new Date().toISOString(),
       })
@@ -134,22 +142,32 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
 
     if (!error) {
       setIsEditing(false)
+      setFormError('')
       if (onUpdate) onUpdate()
+    } else {
+      setFormError('Failed to save. Please try again.')
     }
   }
 
   // Cancel edit — reset all fields
   const handleCancelEdit = () => {
     setIsEditing(false)
+    setFormError('')
     setEditTitle(displayTitle)
     setEditTier(task.urgency_tier)
     setEditType(task.task_type)
     setEditDueDate(task.due_date ? task.due_date.split('T')[0] : '')
+    setEditNotes(task.notes || '')
+    setShowEditNotes(false)
   }
 
   // Pause task (with history logging and 10-task limit)
   const handlePause = async () => {
-    if (!pauseNote.trim()) return
+    setFormError('')
+    if (!pauseNote.trim()) {
+      setFormError('Please note where you are on this task.')
+      return
+    }
 
     if (pausedCount >= 10) {
       alert('You already have 10 tasks put down — finish or clear one first.')
@@ -227,6 +245,8 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
   const typeStyle = typeStyles[task.task_type] || typeStyles['Operational']
 
   // ===== FULL EDIT MODE =====
+  // Auto-expand notes section if task already has notes
+  const editNotesVisible = showEditNotes || (isEditing && !!task.notes)
   if (isEditing) {
     return (
       <div style={{
@@ -237,14 +257,41 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
         backgroundColor: 'var(--bg-subtle)',
       }}>
         <div style={styles.editForm}>
-          <input
-            className="input"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            placeholder="Task title"
-            autoFocus
-            style={{ fontSize: '0.9375rem' }}
-          />
+          <div style={styles.editField}>
+            <label style={styles.editLabel}>Title</label>
+            <div style={styles.titleRow}>
+              <input
+                className="input"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Task title"
+                autoFocus
+                style={{ fontSize: '0.9375rem', flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowEditNotes(!showEditNotes)}
+                style={styles.notesToggleBtn}
+                title={editNotesVisible ? 'Hide notes' : 'Add notes'}
+              >
+                {editNotesVisible
+                  ? <ChevronUpIcon size={12} color="var(--text-secondary)" />
+                  : <ChevronDownIcon size={12} color="var(--text-secondary)" />
+                }
+              </button>
+            </div>
+          </div>
+
+          {editNotesVisible && (
+            <textarea
+              className="input"
+              placeholder="Add context, links, details... (optional)"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              rows={3}
+              style={{ resize: 'vertical', minHeight: '60px', fontFamily: 'inherit', fontSize: '0.8125rem' }}
+            />
+          )}
 
           <div style={styles.editField}>
             <label style={styles.editLabel}>Urgency</label>
@@ -301,7 +348,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
               {editDueDate && (
                 <button
                   onClick={() => setEditDueDate('')}
-                  style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
                 >
                   Clear
                 </button>
@@ -309,6 +356,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             </div>
           </div>
 
+          {formError && <p style={styles.errorText}>{formError}</p>}
           <div style={styles.editActions}>
             <button className="btn-primary" onClick={handleSaveEdit} style={{ fontSize: '0.8125rem' }}>
               Save Changes
@@ -325,12 +373,34 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
   // ===== NORMAL VIEW =====
   return (
     <div style={{
-      ...styles.card,
-      borderLeftColor: tierColor,
-      borderLeftWidth: '4px',
-      borderLeftStyle: 'solid',
+      display: 'flex',
+      alignItems: 'stretch',
+      gap: 0,
+      borderTop: '1px solid var(--border-light)',
+      borderRight: '1px solid var(--border-light)',
+      borderBottom: '1px solid var(--border-light)',
+      borderLeft: `4px solid ${tierColor}`,
+      borderRadius: '8px',
       backgroundColor: isOverdue ? 'rgba(139, 37, 0, 0.03)' : 'var(--bg-base)',
+      overflow: 'hidden',
     }}>
+      {showDragHandle && (
+        <div
+          ref={dragHandleRef}
+          {...dragHandleProps}
+          style={styles.dragHandle}
+          title="Drag to reorder"
+        >
+          <GripIcon size={16} color="var(--text-secondary)" />
+        </div>
+      )}
+      <div style={{
+        ...styles.card,
+        backgroundColor: 'transparent',
+        flex: 1,
+        border: 'none',
+        borderRadius: 0,
+      }}>
       <div style={styles.topRow}>
         <button onClick={handleComplete} style={styles.completeBtn} title="Mark complete">
           <CheckIcon color="var(--text-secondary)" size={16} />
@@ -379,6 +449,13 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             }}>
               {task.task_type}
             </span>
+
+            {/* Notes indicator */}
+            {task.notes && (
+              <span style={styles.noteIndicator} title="Has notes">
+                <NoteIcon size={11} color="var(--text-secondary)" />
+              </span>
+            )}
 
             {/* Scheduled time badge + Soon/Now — shown for any task with a time */}
             {timeStr && (
@@ -467,7 +544,7 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
             className="input"
             placeholder="Where are you right now? (e.g. halfway through east elevation check)"
             value={pauseNote}
-            onChange={(e) => setPauseNote(e.target.value)}
+            onChange={(e) => { setPauseNote(e.target.value); setFormError('') }}
             onKeyDown={(e) => e.key === 'Enter' && handlePause()}
             autoFocus
             style={{ fontSize: '0.8125rem', padding: '0.375rem 0.5rem' }}
@@ -475,19 +552,22 @@ export default function TaskCard({ task, onUpdate, onDelete, pausedCount = 0, on
           <button className="btn-primary" onClick={handlePause} style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
             Put Down
           </button>
-          <button className="btn-secondary" onClick={() => setShowPauseInput(false)} style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}>
+          <button className="btn-secondary" onClick={() => { setShowPauseInput(false); setFormError('') }} style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}>
             Cancel
           </button>
+          {formError && !isEditing && <p style={styles.errorText}>{formError}</p>}
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 const styles = {
+  errorText: { fontSize: '0.8125rem', color: 'var(--tier-1)', margin: 0, width: '100%' },
   card: { padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)', transition: 'box-shadow 0.15s ease' },
   topRow: { display: 'flex', alignItems: 'flex-start', gap: '0.625rem' },
-  completeBtn: { flexShrink: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', transition: 'border-color 0.15s, background-color 0.15s', marginTop: '2px' },
+  completeBtn: { flexShrink: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: '1.5px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', transition: 'border-color 0.15s, background-color 0.15s', marginTop: '2px' },
   content: { flex: 1, minWidth: 0 },
   title: { fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', lineHeight: 1.3 },
   contextLink: { fontSize: '0.6875rem', fontWeight: 500, color: 'var(--tier-2)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.15s' },
@@ -498,8 +578,9 @@ const styles = {
   pauseNoteText: { fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '0.375rem', lineHeight: 1.4 },
   pauseTimestamp: { fontSize: '0.6875rem', color: 'var(--set-aside)' },
   actions: { display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 },
-  actionBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', border: 'none', background: 'none', cursor: 'pointer', position: 'relative', transition: 'background-color 0.15s' },
+  actionBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', position: 'relative', transition: 'background-color 0.15s' },
   kickBadge: { position: 'absolute', top: '0px', right: '0px', fontSize: '0.5625rem', fontWeight: 700, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-3)', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 },
+  dragHandle: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', flexShrink: 0, cursor: 'grab', backgroundColor: 'transparent', touchAction: 'none' },
   pauseRow: { display: 'flex', gap: '0.375rem', alignItems: 'center', marginTop: '0.625rem', paddingTop: '0.625rem', borderTop: '1px solid var(--border-light)' },
   editForm: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
   editField: { display: 'flex', flexDirection: 'column', gap: '0.25rem' },
@@ -511,4 +592,7 @@ const styles = {
   timeBadge: { fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: 'var(--border-light)', padding: '0.125rem 0.5rem', borderRadius: '4px' },
   nowBadge: { fontSize: '0.625rem', fontWeight: 700, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-1)', padding: '0.125rem 0.5rem', borderRadius: '4px' },
   soonBadge: { fontSize: '0.625rem', fontWeight: 700, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-2)', padding: '0.125rem 0.5rem', borderRadius: '4px' },
+  noteIndicator: { display: 'inline-flex', alignItems: 'center', opacity: 0.6 },
+  titleRow: { display: 'flex', gap: '0.5rem', alignItems: 'center' },
+  notesToggleBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', flexShrink: 0, transition: 'border-color 0.15s' },
 }

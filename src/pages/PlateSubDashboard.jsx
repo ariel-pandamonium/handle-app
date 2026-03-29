@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { getEffectiveTier, sortByUrgency, getTierColor } from '../lib/urgency'
+import { getEffectiveTier, sortByUrgency, sortByUrgencyWithPlateGrouping, getTierColor } from '../lib/urgency'
 import AddProjectForm from '../components/AddProjectForm'
 import AddTaskForm from '../components/AddTaskForm'
 import TaskCard from '../components/TaskCard'
+import SortableTaskList from '../components/SortableTaskList'
 import { BackIcon, PlusIcon, FlameIcon, PlayIcon } from '../components/Icons'
 
 /**
@@ -37,6 +38,24 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
     setProjects(projRes.data || [])
     setAllTasks(taskRes.data || [])
     setLoading(false)
+  }, [plate.id])
+
+  // Quiet refresh — no loading spinner (used after drag-and-drop)
+  const quietFetchData = useCallback(async () => {
+    const [projRes, taskRes] = await Promise.all([
+      supabase
+        .from('projects')
+        .select('*')
+        .eq('plate_id', plate.id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('tasks')
+        .select('*')
+        .eq('plate_id', plate.id)
+        .eq('is_complete', false),
+    ])
+    setProjects(projRes.data || [])
+    setAllTasks(taskRes.data || [])
   }, [plate.id])
 
   useEffect(() => {
@@ -109,8 +128,9 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
     .filter(p => p.status === 'active' && !p.is_set_aside)
     .sort((a, b) => getProjectUrgencyScore(b) - getProjectUrgencyScore(a))
 
-  // Combined urgency list — ALL tasks across all sub-plates + free-floating
-  const allSorted = sortByUrgency(allTasks)
+  // Combined urgency list — ALL tasks, grouped by sub-plate within each urgency tier
+  // Plate score not needed here since all tasks belong to same plate — sub-plate scores are built inside the sort function
+  const allSorted = sortByUrgencyWithPlateGrouping(allTasks, [plate], activeProjects, null, true)
   const urgencyPreview = urgencyExpanded ? allSorted : allSorted.slice(0, 3)
 
   // Free-floating tasks (not assigned to any sub-plate)
@@ -186,7 +206,7 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
         )}
       </div>
 
-      {loading ? (
+      {loading && allTasks.length === 0 ? (
         <p style={styles.loadingText}>Loading...</p>
       ) : (
         <>
@@ -194,7 +214,7 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
           {allSorted.length > 0 && (
             <div style={styles.urgencySection}>
               <div style={styles.urgencyHeader}>
-                <h3 style={styles.urgencyTitle}>All Tasks by Urgency</h3>
+                <h3 style={styles.urgencyTitle}>All Tasks</h3>
                 {allSorted.length > 3 && (
                   <button onClick={() => setUrgencyExpanded(!urgencyExpanded)} style={styles.expandBtn}>
                     {urgencyExpanded ? 'Collapse' : `Show all ${allSorted.length}`}
@@ -205,16 +225,17 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
                 {urgencyPreview.map((task) => {
                   const proj = task.project_id ? projects.find(p => p.id === task.project_id) : null
                   return (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onUpdate={fetchData}
-                      onDelete={fetchData}
-                      pausedCount={pausedCount}
-                      onTaskFocused={onTaskFocused}
-                      contextLabel={proj ? proj.name : null}
-                      onContextClick={proj ? () => onSelectProject(proj) : undefined}
-                    />
+                    <div key={task.id} style={{ flexShrink: 0 }}>
+                      <TaskCard
+                        task={task}
+                        onUpdate={fetchData}
+                        onDelete={fetchData}
+                        pausedCount={pausedCount}
+                        onTaskFocused={onTaskFocused}
+                        contextLabel={proj ? proj.name : null}
+                        onContextClick={proj ? () => onSelectProject(proj) : undefined}
+                      />
+                    </div>
                   )
                 })}
               </div>
@@ -302,18 +323,14 @@ export default function PlateSubDashboard({ plate, onBack, onSelectProject, onFo
           {freeFloatingTasks.length > 0 && (
             <div style={styles.freeFloatingSection}>
               <h3 style={styles.sectionLabel}>General Tasks</h3>
-              <div style={styles.freeFloatingList}>
-                {freeFloatingTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onUpdate={fetchData}
-                    onDelete={fetchData}
-                    pausedCount={pausedCount}
-                    onTaskFocused={onTaskFocused}
-                  />
-                ))}
-              </div>
+              <SortableTaskList
+                tasks={freeFloatingTasks}
+                onUpdate={fetchData}
+                onReorder={quietFetchData}
+                onDelete={fetchData}
+                pausedCount={pausedCount}
+                onTaskFocused={onTaskFocused}
+              />
             </div>
           )}
 
@@ -352,7 +369,7 @@ const styles = {
   urgencySection: { backgroundColor: 'var(--bg-base)', border: '1px solid var(--border-light)', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' },
   urgencyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' },
   urgencyTitle: { fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' },
-  expandBtn: { fontSize: '0.75rem', color: 'var(--tier-2)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' },
+  expandBtn: { fontSize: '0.75rem', color: 'var(--tier-2)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' },
   urgencyList: { display: 'flex', flexDirection: 'column', gap: '0.375rem' },
   urgencyListExpanded: { display: 'flex', flexDirection: 'column', gap: '0.375rem', maxHeight: '400px', overflowY: 'auto' },
   urgencyRow: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0.5rem', borderRadius: '6px', backgroundColor: 'var(--bg-subtle)', borderLeft: '3px solid' },
@@ -364,7 +381,7 @@ const styles = {
   miniPickUpBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.125rem', fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-on-accent)', backgroundColor: 'var(--tier-2)', padding: '0.125rem 0.375rem', borderRadius: '4px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
 
   // Add task / add plate buttons
-  addTaskBtn: { display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem', border: '1px dashed var(--border)', borderRadius: '8px', background: 'none', cursor: 'pointer', color: 'var(--tier-2)', fontWeight: 500, fontSize: '0.8125rem', marginBottom: '1rem' },
+  addTaskBtn: { display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem', border: '1px dashed var(--border)', borderRadius: '8px', backgroundColor: 'transparent', cursor: 'pointer', color: 'var(--tier-2)', fontWeight: 500, fontSize: '0.8125rem', marginBottom: '1rem' },
   sectionLabel: { fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', marginBottom: '0.5rem' },
 
   // Sub-plate grid
@@ -392,8 +409,8 @@ const styles = {
   loadingText: { textAlign: 'center', color: 'var(--text-secondary)', marginTop: '2rem' },
 
   // Set Aside
-  setAsideBtn: { fontSize: '0.75rem', fontWeight: 500, color: 'var(--set-aside)', background: 'none', border: '1px solid var(--set-aside)', borderRadius: '6px', padding: '0.25rem 0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' },
+  setAsideBtn: { fontSize: '0.75rem', fontWeight: 500, color: 'var(--set-aside)', backgroundColor: 'transparent', border: '1px solid var(--set-aside)', borderRadius: '6px', padding: '0.25rem 0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' },
   setAsidePopup: { display: 'flex', alignItems: 'center', gap: '0.375rem' },
   setAsideConfirmBtn: { fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-on-accent)', backgroundColor: 'var(--set-aside)', border: 'none', borderRadius: '4px', padding: '0.25rem 0.5rem', cursor: 'pointer', whiteSpace: 'nowrap' },
-  setAsideCancelBtn: { fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' },
+  setAsideCancelBtn: { fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' },
 }

@@ -631,7 +631,7 @@ const styles = {
     right: '1rem',
     fontSize: '0.8125rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     textDecoration: 'underline',
@@ -682,7 +682,7 @@ const styles = {
   prevBtn: {
     fontSize: '0.875rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '0.5rem 1rem',

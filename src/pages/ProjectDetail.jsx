@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { sortByUrgency } from '../lib/urgency'
 import TaskCard from '../components/TaskCard'
+import SortableTaskList from '../components/SortableTaskList'
 import AddTaskForm from '../components/AddTaskForm'
 import { BackIcon, PlusIcon } from '../components/Icons'
 
@@ -37,6 +38,19 @@ export default function ProjectDetail({ project, plate, onBack, onTaskFocused, d
       setTasks(data || [])
     }
     setLoading(false)
+  }, [project.id])
+
+  // Quiet refresh — no loading spinner (used after drag-and-drop)
+  const quietFetchTasks = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('project_id', project.id)
+      .order('created_at', { ascending: true })
+
+    if (!error) {
+      setTasks(data || [])
+    }
   }, [project.id])
 
   useEffect(() => {
@@ -162,16 +176,18 @@ export default function ProjectDetail({ project, plate, onBack, onTaskFocused, d
       )}
 
       {/* Active tasks */}
-      {loading ? (
+      {loading && tasks.length === 0 ? (
         <p style={styles.loadingText}>Loading tasks...</p>
       ) : activeTasks.length === 0 ? (
         <p style={styles.emptyText}>No tasks yet. Add one above!</p>
       ) : (
-        <div style={styles.taskList}>
-          {activeTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onUpdate={fetchTasks} onDelete={fetchTasks} onTaskFocused={onTaskFocused} />
-          ))}
-        </div>
+        <SortableTaskList
+          tasks={activeTasks}
+          onUpdate={fetchTasks}
+          onReorder={quietFetchTasks}
+          onDelete={fetchTasks}
+          onTaskFocused={onTaskFocused}
+        />
       )}
 
       {/* Completed tasks */}
@@ -297,7 +313,7 @@ const styles = {
   completedToggle: {
     fontSize: '0.8125rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     textDecoration: 'underline',
@@ -324,7 +340,7 @@ const styles = {
     fontSize: '0.75rem',
     fontWeight: 500,
     color: 'var(--set-aside)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: '1px solid var(--set-aside)',
     borderRadius: '6px',
     padding: '0.25rem 0.75rem',
@@ -352,7 +368,7 @@ const styles = {
   setAsideCancelBtn: {
     fontSize: '0.75rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
   },

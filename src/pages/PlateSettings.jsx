@@ -14,6 +14,7 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
   const [expandedPlate, setExpandedPlate] = useState(null)
   const [editingProject, setEditingProject] = useState(null)
   const [editProjectName, setEditProjectName] = useState('')
+  const [formError, setFormError] = useState('')
 
   // Fetch all projects (sub-plates)
   const fetchProjects = useCallback(async () => {
@@ -31,7 +32,11 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
 
   // Rename a sub-plate
   const handleRenameProject = async (projectId) => {
-    if (!editProjectName.trim()) return
+    setFormError('')
+    if (!editProjectName.trim()) {
+      setFormError('Please enter a plate name.')
+      return
+    }
     const { error } = await supabase
       .from('projects')
       .update({ name: editProjectName.trim() })
@@ -40,6 +45,8 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
       setEditingProject(null)
       fetchProjects()
       if (onUpdate) onUpdate()
+    } else {
+      setFormError('Failed to rename. Please try again.')
     }
   }
 
@@ -81,7 +88,12 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
   // Add new plate
   const handleAddPlate = async (e) => {
     e.preventDefault()
-    if (!newPlateName.trim() || !user) return
+    setFormError('')
+
+    if (!newPlateName.trim()) {
+      setFormError('Please enter a plate name.')
+      return
+    }
 
     const maxSort = Math.max(...plates.map(p => p.sort_order || 0), 0)
     const { error } = await supabase.from('plates').insert({
@@ -95,6 +107,8 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
       setNewPlateName('')
       setShowAddForm(false)
       if (onUpdate) onUpdate()
+    } else {
+      setFormError('Failed to add plate. Please try again.')
     }
   }
 
@@ -117,7 +131,12 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
 
   // Save plate edits
   const saveEdit = async (plateId) => {
-    if (!editName.trim()) return
+    setFormError('')
+
+    if (!editName.trim()) {
+      setFormError('Plate name cannot be empty.')
+      return
+    }
 
     const { error } = await supabase
       .from('plates')
@@ -130,6 +149,8 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
     if (!error) {
       setEditingPlate(null)
       if (onUpdate) onUpdate()
+    } else {
+      setFormError('Failed to save changes. Please try again.')
     }
   }
 
@@ -216,9 +237,10 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
                       </div>
                     </div>
 
+                    {formError && <p style={styles.errorText}>{formError}</p>}
                     <div style={styles.editActions}>
                       <button className="btn-primary" onClick={() => saveEdit(plate.id)} style={{ fontSize: '0.8125rem' }}>Save</button>
-                      <button className="btn-secondary" onClick={() => setEditingPlate(null)} style={{ fontSize: '0.8125rem' }}>Cancel</button>
+                      <button className="btn-secondary" onClick={() => { setEditingPlate(null); setFormError('') }} style={{ fontSize: '0.8125rem' }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
@@ -275,7 +297,8 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
                             style={{ fontSize: '0.8125rem', flex: 1 }}
                           />
                           <button className="btn-primary" onClick={() => handleRenameProject(proj.id)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>Save</button>
-                          <button className="btn-secondary" onClick={() => setEditingProject(null)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>Cancel</button>
+                          <button className="btn-secondary" onClick={() => { setEditingProject(null); setFormError('') }} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>Cancel</button>
+                          {formError && editingProject === proj.id && <p style={styles.errorText}>{formError}</p>}
                         </div>
                       ) : (
                         <>
@@ -348,11 +371,12 @@ export default function PlateSettings({ plates, onBack, onUpdate }) {
             autoFocus
             required
           />
+          {formError && <p style={styles.errorText}>{formError}</p>}
           <div style={styles.addActions}>
             <button className="btn-primary" type="submit" disabled={!newPlateName.trim()} style={{ fontSize: '0.8125rem' }}>
               Add Plate
             </button>
-            <button className="btn-secondary" type="button" onClick={() => { setShowAddForm(false); setNewPlateName('') }} style={{ fontSize: '0.8125rem' }}>
+            <button className="btn-secondary" type="button" onClick={() => { setShowAddForm(false); setNewPlateName(''); setFormError('') }} style={{ fontSize: '0.8125rem' }}>
               Cancel
             </button>
           </div>
@@ -408,6 +432,11 @@ function SetAsideButton({ plate, onSetAside }) {
 }
 
 const styles = {
+  errorText: {
+    fontSize: '0.8125rem',
+    color: 'var(--tier-1)',
+    margin: 0,
+  },
   container: {
     padding: '1.25rem',
     maxWidth: '600px',
@@ -503,7 +532,7 @@ const styles = {
   editBtn: {
     fontSize: '0.75rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     textDecoration: 'underline',
@@ -516,7 +545,7 @@ const styles = {
     height: '28px',
     borderRadius: '6px',
     border: 'none',
-    background: 'none',
+    backgroundColor: 'transparent',
     cursor: 'pointer',
   },
 
@@ -571,7 +600,7 @@ const styles = {
     fontSize: '0.6875rem',
     fontWeight: 500,
     color: 'var(--set-aside)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: '1px solid var(--set-aside)',
     borderRadius: '4px',
     padding: '0.125rem 0.375rem',
@@ -582,7 +611,7 @@ const styles = {
     fontSize: '0.6875rem',
     fontWeight: 600,
     color: 'var(--tier-2)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: '1px solid var(--tier-2)',
     borderRadius: '4px',
     padding: '0.125rem 0.375rem',
@@ -604,7 +633,7 @@ const styles = {
     fontSize: '0.6875rem',
     fontWeight: 500,
     color: 'var(--set-aside)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: '1px solid var(--set-aside)',
     borderRadius: '4px',
     padding: '0.125rem 0.5rem',
@@ -636,7 +665,7 @@ const styles = {
   setAsideCancelBtn: {
     fontSize: '0.75rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
   },
@@ -646,7 +675,7 @@ const styles = {
     fontSize: '0.75rem',
     fontWeight: 600,
     color: 'var(--tier-2)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: '1px solid var(--tier-2)',
     borderRadius: '6px',
     padding: '0.25rem 0.75rem',

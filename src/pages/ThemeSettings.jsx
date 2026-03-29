@@ -26,7 +26,7 @@ export default function ThemeSettings({ onBack }) {
         {PALETTES.map((p) => {
           const isActive = palette === p.key
           return (
-            <button
+            <div
               key={p.key}
               onClick={() => setPalette(p.key)}
               style={{
@@ -46,7 +46,7 @@ export default function ThemeSettings({ onBack }) {
               }}>
                 {p.name}{isActive ? ' ✓' : ''}
               </span>
-            </button>
+            </div>
           )
         })}
       </div>
@@ -100,7 +100,7 @@ const styles = {
     gap: '0.5rem',
     padding: '1rem',
     borderRadius: '12px',
-    border: '2px solid var(--border-light)',
+    border: '2px solid transparent',
     backgroundColor: 'var(--bg-base)',
     cursor: 'pointer',
     transition: 'border-color 0.15s ease',
@@ -108,7 +108,7 @@ const styles = {
     WebkitTapHighlightColor: 'transparent',
   },
   paletteCardActive: {
-    borderColor: 'var(--tier-2)',
+    border: '2px solid var(--tier-2)',
   },
   paletteSwatches: {
     display: 'flex',

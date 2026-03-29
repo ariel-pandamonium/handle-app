@@ -120,7 +120,7 @@ const styles = {
     fontSize: '0.875rem',
     fontWeight: 500,
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '0.25rem 0',

@@ -229,13 +229,30 @@ export function getTierSortOrder(effectiveTier) {
 
 /**
  * Sort tasks by urgency (most urgent first)
+ * Within each urgency tier:
+ *   1. Kicked tasks first (highest kick count)
+ *   2. Scheduled tasks with times (by time, earliest first)
+ *   3. Tasks with due dates (soonest first)
+ *   4. Everything else by creation date (oldest first)
+ *   5. sort_position as final tiebreaker (if both have one)
  */
 export function sortByUrgency(tasks) {
   return [...tasks].sort((a, b) => {
     const tierA = getTierSortOrder(getEffectiveTier(a))
     const tierB = getTierSortOrder(getEffectiveTier(b))
     if (tierA !== tierB) return tierA - tierB
-    // Same tier: scheduled tasks with times sort by time (earliest first)
+
+    // Same tier: kicked tasks float to the top (higher kick count first)
+    const aKicked = (a.kick_count || 0) > 0
+    const bKicked = (b.kick_count || 0) > 0
+    if (aKicked && !bKicked) return -1
+    if (!aKicked && bKicked) return 1
+    if (aKicked && bKicked) {
+      const kickDiff = (b.kick_count || 0) - (a.kick_count || 0)
+      if (kickDiff !== 0) return kickDiff
+    }
+
+    // Scheduled tasks with times sort by time (earliest first)
     const aTimeMatch = a.title.match(/^\[(\d{2}:\d{2})\]/)
     const bTimeMatch = b.title.match(/^\[(\d{2}:\d{2})\]/)
     const aHasTime = !!aTimeMatch
@@ -246,16 +263,149 @@ export function sortByUrgency(tasks) {
     // Tasks with scheduled times float above non-timed tasks in the same tier
     if (aHasTime && !bHasTime) return -1
     if (!aHasTime && bHasTime) return 1
-    // Same tier: sort by due date first (soonest first), then by created_at
+
+    // Sort by due date (soonest first)
     if (a.due_date && b.due_date) {
       const dateA = parseDateLocal(a.due_date)
       const dateB = parseDateLocal(b.due_date)
       if (dateA.getTime() !== dateB.getTime()) return dateA - dateB
     }
-    // Tasks with due dates come before tasks without
     if (a.due_date && !b.due_date) return -1
     if (!a.due_date && b.due_date) return 1
+
+    // sort_position tiebreaker (from drag-and-drop in plates)
+    if (a.sort_position != null && b.sort_position != null) {
+      const posDiff = a.sort_position - b.sort_position
+      if (posDiff !== 0) return posDiff
+    }
+
     // Otherwise: older tasks first
+    return new Date(a.created_at) - new Date(b.created_at)
+  })
+}
+
+/**
+ * Sort tasks with plate grouping for dashboard filtered lists.
+ * Within each urgency tier, tasks are grouped by plate (most urgent plate first),
+ * then within each plate group sorted by the standard rules (kicked, time, due date, oldest).
+ *
+ * @param tasks - the tasks to sort
+ * @param plates - array of plate objects (need id, name for grouping)
+ * @param projects - array of project/sub-plate objects (need id, plate_id for sub-plate grouping)
+ * @param calcPlateScore - function(plateId) that returns an urgency score for a plate (lower = more urgent)
+ * @param groupBySubPlate - if true, group by sub-plate within plate (for PlateSubDashboard "All Tasks")
+ */
+export function sortByUrgencyWithPlateGrouping(tasks, plates = [], projects = [], calcPlateScore = null, groupBySubPlate = false) {
+  // Build plate score map
+  const plateScoreMap = {}
+  if (calcPlateScore) {
+    plates.forEach(p => {
+      plateScoreMap[p.id] = calcPlateScore(p.id)
+    })
+  }
+
+  // Build sub-plate (project) score map using same urgency scoring
+  const subPlateScoreMap = {}
+  if (groupBySubPlate) {
+    projects.forEach(proj => {
+      const projTasks = tasks.filter(t => t.project_id === proj.id)
+      let score = 0
+      projTasks.forEach(t => {
+        const tier = getEffectiveTier(t)
+        if (tier === 'Overdue') score += 100
+        else if (tier === 'Today') score += 50
+        else if (tier === 'Tomorrow') score += 25
+        else if (tier === 'This Week') score += 10
+        else if (tier === 'Next Week') score += 5
+        else if (tier === 'This Month') score += 2
+        else score += 1
+      })
+      subPlateScoreMap[proj.id] = -score // negate so higher urgency sorts first
+    })
+  }
+
+  // Build project-to-plate map
+  const projectPlateMap = {}
+  projects.forEach(p => {
+    projectPlateMap[p.id] = p.plate_id
+  })
+
+  return [...tasks].sort((a, b) => {
+    // 1. Urgency tier is always the top-level sort
+    const tierA = getTierSortOrder(getEffectiveTier(a))
+    const tierB = getTierSortOrder(getEffectiveTier(b))
+    if (tierA !== tierB) return tierA - tierB
+
+    // 2. Within the same tier, group by plate (most urgent plate first)
+    const plateIdA = a.plate_id || ''
+    const plateIdB = b.plate_id || ''
+    if (plateIdA !== plateIdB) {
+      const scoreA = plateScoreMap[plateIdA] ?? 999
+      const scoreB = plateScoreMap[plateIdB] ?? 999
+      if (scoreA !== scoreB) return scoreA - scoreB
+      // Same score — alphabetical by plate name as tiebreaker
+      const plateA = plates.find(p => p.id === plateIdA)
+      const plateB = plates.find(p => p.id === plateIdB)
+      const nameA = plateA ? plateA.name : ''
+      const nameB = plateB ? plateB.name : ''
+      return nameA.localeCompare(nameB)
+    }
+
+    // 3. Within the same plate, group by sub-plate if requested (most urgent sub-plate first)
+    if (groupBySubPlate) {
+      const subA = a.project_id || ''
+      const subB = b.project_id || ''
+      if (subA !== subB) {
+        // Tasks without a sub-plate (free-floating) go after sub-plate tasks
+        if (!subA && subB) return 1
+        if (subA && !subB) return -1
+        // Sort sub-plates by urgency score (most urgent first)
+        const scoreA = subPlateScoreMap[subA] ?? 999
+        const scoreB = subPlateScoreMap[subB] ?? 999
+        if (scoreA !== scoreB) return scoreA - scoreB
+        // Alphabetical tiebreaker
+        const projA = projects.find(p => p.id === subA)
+        const projB = projects.find(p => p.id === subB)
+        const pNameA = projA ? projA.name : ''
+        const pNameB = projB ? projB.name : ''
+        return pNameA.localeCompare(pNameB)
+      }
+    }
+
+    // 4. Within same plate (and sub-plate): standard sort rules
+    // Kicked tasks first
+    const aKicked = (a.kick_count || 0) > 0
+    const bKicked = (b.kick_count || 0) > 0
+    if (aKicked && !bKicked) return -1
+    if (!aKicked && bKicked) return 1
+    if (aKicked && bKicked) {
+      const kickDiff = (b.kick_count || 0) - (a.kick_count || 0)
+      if (kickDiff !== 0) return kickDiff
+    }
+
+    // Scheduled tasks with times
+    const aTimeMatch = a.title.match(/^\[(\d{2}:\d{2})\]/)
+    const bTimeMatch = b.title.match(/^\[(\d{2}:\d{2})\]/)
+    if (aTimeMatch && bTimeMatch) return aTimeMatch[1].localeCompare(bTimeMatch[1])
+    if (aTimeMatch && !bTimeMatch) return -1
+    if (!aTimeMatch && bTimeMatch) return 1
+
+    // Due date
+    if (a.due_date && b.due_date) {
+      const dateA = parseDateLocal(a.due_date)
+      const dateB = parseDateLocal(b.due_date)
+      if (dateA.getTime() !== dateB.getTime()) return dateA - dateB
+    }
+    if (a.due_date && !b.due_date) return -1
+    if (!a.due_date && b.due_date) return 1
+
+    // sort_position tiebreaker
+    if (a.sort_position != null && b.sort_position != null) {
+      const posDiff = a.sort_position - b.sort_position
+      if (posDiff !== 0) return posDiff
+    }
+
+    // Oldest first
     return new Date(a.created_at) - new Date(b.created_at)
   })
 }

@@ -324,7 +324,7 @@ const styles = {
     gap: '0.5rem',
     width: '100%',
     padding: '0.75rem 1rem',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     textAlign: 'left',

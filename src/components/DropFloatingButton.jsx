@@ -15,6 +15,7 @@ export default function DropFloatingButton({ onTaskAdded }) {
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
   const [handsFull, setHandsFull] = useState(false)
+  const [formError, setFormError] = useState('')
   const inputRef = useRef(null)
   const { items, addDropItem, fetchDropItems } = useDropStore()
   const { plates, fetchPlates } = usePlatesStore()
@@ -64,17 +65,25 @@ export default function DropFloatingButton({ onTaskAdded }) {
     setMode(null)
     setText('')
     setHandsFull(false)
+    setFormError('')
   }
 
   const handleSubmitDrop = async (e) => {
     e?.preventDefault()
-    if (!text.trim() || saving) return
+    setFormError('')
+    if (!text.trim()) {
+      setFormError('Please type something to drop.')
+      return
+    }
+    if (saving) return
     setSaving(true)
     const result = await addDropItem(text.trim())
     setSaving(false)
     if (result.error === 'hands_full') {
       setHandsFull(true)
-    } else if (!result.error) {
+    } else if (result.error) {
+      setFormError('Failed to save. Please try again.')
+    } else {
       setText('')
       handleClose()
     }
@@ -137,12 +146,13 @@ export default function DropFloatingButton({ onTaskAdded }) {
                   ref={inputRef}
                   type="text"
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => { setText(e.target.value); setFormError('') }}
                   placeholder="What's on your mind?"
                   style={styles.input}
                   maxLength={500}
                   autoComplete="off"
                 />
+                {formError && <p style={styles.errorText}>{formError}</p>}
                 <button
                   type="submit"
                   disabled={!text.trim() || saving}
@@ -199,6 +209,11 @@ export default function DropFloatingButton({ onTaskAdded }) {
 }
 
 const styles = {
+  errorText: {
+    fontSize: '0.8125rem',
+    color: 'var(--tier-1)',
+    margin: 0,
+  },
   fab: {
     position: 'fixed',
     bottom: '1.5rem',
@@ -216,7 +231,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    zIndex: 900,
+    zIndex: 1100,
     transition: 'transform 0.15s ease, box-shadow 0.15s ease',
   },
   backdrop: {
@@ -226,7 +241,7 @@ const styles = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    zIndex: 950,
+    zIndex: 1150,
   },
 
   // Sub-menu (Drop / New)
@@ -237,7 +252,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '0.5rem',
-    zIndex: 960,
+    zIndex: 1160,
   },
   subMenuBtn: {
     display: 'flex',
@@ -278,7 +293,7 @@ const styles = {
     borderTopRightRadius: '16px',
     padding: '1.5rem',
     paddingBottom: '2rem',
-    zIndex: 960,
+    zIndex: 1160,
     boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
     maxWidth: '600px',
     margin: '0 auto',

@@ -149,6 +149,14 @@ export default function InHandView({ task, plateName, onUpdate }) {
           </p>
         )}
 
+        {/* Notes */}
+        {task.notes && (
+          <div style={styles.notesSection}>
+            <p style={styles.notesLabel}>Notes</p>
+            <p style={styles.notesText}>{task.notes}</p>
+          </div>
+        )}
+
         {/* Pause history */}
         {history.length > 0 && (
           <div style={styles.historySection}>
@@ -259,7 +267,7 @@ const styles = {
   exitBtn: {
     fontSize: '0.75rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     textDecoration: 'underline',
@@ -309,6 +317,28 @@ const styles = {
     color: 'var(--tier-1)',
     fontWeight: 500,
     padding: '0 1.5rem 0.5rem',
+  },
+
+  // Notes
+  notesSection: {
+    padding: '0 1.5rem 0.75rem',
+  },
+  notesLabel: {
+    fontSize: '0.6875rem',
+    fontWeight: 600,
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    marginBottom: '0.25rem',
+  },
+  notesText: {
+    fontSize: '0.875rem',
+    color: 'var(--text-primary)',
+    lineHeight: 1.5,
+    backgroundColor: 'var(--bg-subtle)',
+    padding: '0.625rem 0.75rem',
+    borderRadius: '8px',
+    whiteSpace: 'pre-wrap',
   },
 
   // History

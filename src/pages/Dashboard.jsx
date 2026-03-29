@@ -299,7 +299,12 @@ export default function Dashboard() {
         {focusOverlay}
         <header style={styles.header}>
           <h1 style={styles.logo}>Handle.</h1>
-          <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          <div style={styles.headerRight}>
+            <button onClick={() => setShowSettings(true)} style={styles.settingsBtn} title="Manage Plates">
+              <SettingsIcon size={18} color="var(--text-secondary)" />
+            </button>
+            <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          </div>
         </header>
         <ProjectDetail
           project={selectedProject}
@@ -324,7 +329,12 @@ export default function Dashboard() {
         {focusOverlay}
         <header style={styles.header}>
           <h1 style={styles.logo}>Handle.</h1>
-          <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          <div style={styles.headerRight}>
+            <button onClick={() => setShowSettings(true)} style={styles.settingsBtn} title="Manage Plates">
+              <SettingsIcon size={18} color="var(--text-secondary)" />
+            </button>
+            <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          </div>
         </header>
         <PlateSubDashboard
           plate={selectedPlate}
@@ -344,7 +354,12 @@ export default function Dashboard() {
         {focusOverlay}
         <header style={styles.header}>
           <h1 style={styles.logo}>Handle.</h1>
-          <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          <div style={styles.headerRight}>
+            <button onClick={() => setShowSettings(true)} style={styles.settingsBtn} title="Manage Plates">
+              <SettingsIcon size={18} color="var(--text-secondary)" />
+            </button>
+            <button onClick={signOut} style={styles.signOut}>Sign out</button>
+          </div>
         </header>
         <PlateDetail plate={selectedPlate} onBack={handleBack} pausedCount={pausedCount} onTaskFocused={(task) => setGlobalFocusTask(task)} dataVersion={dataVersion} />
       </div>
@@ -682,7 +697,7 @@ const styles = {
     fontSize: '0.8125rem',
     color: 'var(--text-secondary)',
     cursor: 'pointer',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     textDecoration: 'underline',
   },

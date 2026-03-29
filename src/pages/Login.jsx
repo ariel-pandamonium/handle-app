@@ -129,7 +129,7 @@ const styles = {
     marginTop: '1.25rem',
     fontSize: '0.8125rem',
     color: 'var(--text-secondary)',
-    background: 'none',
+    backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
     textDecoration: 'underline',

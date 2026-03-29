@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getEffectiveTier, sortByUrgency } from '../lib/urgency'
+import { getEffectiveTier, sortByUrgency, sortByUrgencyWithPlateGrouping } from '../lib/urgency'
 import TaskCard from './TaskCard'
 
 /**
@@ -78,8 +78,25 @@ export default function FilteredTaskList({ tasks, plates, projects = [], filter,
     filtered = filtered.filter(t => t.task_type === filterType)
   }
 
-  // Sort by urgency (most urgent first)
-  const sorted = sortByUrgency(filtered)
+  // Calculate plate urgency score (higher = more urgent, inverted for sort)
+  const calcPlateScore = (plateId) => {
+    const plateTasks = tasks.filter(t => t.plate_id === plateId && !t.is_complete)
+    let score = 0
+    plateTasks.forEach(t => {
+      const tier = getEffectiveTier(t)
+      if (tier === 'Overdue') score += 100
+      else if (tier === 'Today') score += 50
+      else if (tier === 'Tomorrow') score += 25
+      else if (tier === 'This Week') score += 10
+      else if (tier === 'Next Week') score += 5
+      else if (tier === 'This Month') score += 2
+      else score += 1
+    })
+    return -score // negate so higher urgency sorts first
+  }
+
+  // Sort by urgency with plate grouping (most urgent plate first, then sub-plate within plate)
+  const sorted = sortByUrgencyWithPlateGrouping(filtered, plates, projects, calcPlateScore, true)
 
   // Map plate IDs to plate objects
   const plateMap = {}
@@ -161,16 +178,17 @@ export default function FilteredTaskList({ tasks, plates, projects = [], filter,
           {sorted.map((task) => {
             const ctx = getContext(task)
             return (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onUpdate={onTaskUpdated}
-                onDelete={onTaskUpdated}
-                pausedCount={pausedCount}
-                onTaskFocused={onTaskFocused}
-                contextLabel={ctx.label}
-                onContextClick={ctx.handleClick}
-              />
+              <div key={task.id} style={{ flexShrink: 0 }}>
+                <TaskCard
+                  task={task}
+                  onUpdate={onTaskUpdated}
+                  onDelete={onTaskUpdated}
+                  pausedCount={pausedCount}
+                  onTaskFocused={onTaskFocused}
+                  contextLabel={ctx.label}
+                  onContextClick={ctx.handleClick}
+                />
+              </div>
             )
           })}
         </div>
@@ -205,7 +223,7 @@ const styles = {
     height: '28px',
     borderRadius: '6px',
     border: 'none',
-    background: 'none',
+    backgroundColor: 'transparent',
     cursor: 'pointer',
     fontSize: '0.875rem',
     color: 'var(--text-secondary)',
@@ -238,5 +256,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '0.5rem',
+    maxHeight: '70vh',
+    overflowY: 'auto',
   },
 }

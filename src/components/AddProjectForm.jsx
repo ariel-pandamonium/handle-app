@@ -7,10 +7,16 @@ export default function AddProjectForm({ plateId, onProjectAdded, onCancel }) {
   const [name, setName] = useState('')
   const [isBillable, setIsBillable] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!name.trim() || !user) return
+    setFormError('')
+
+    if (!name.trim()) {
+      setFormError('Please enter a plate name.')
+      return
+    }
 
     setSaving(true)
 
@@ -26,6 +32,8 @@ export default function AddProjectForm({ plateId, onProjectAdded, onCancel }) {
       setName('')
       setIsBillable(true)
       if (onProjectAdded) onProjectAdded()
+    } else {
+      setFormError('Failed to add plate. Please try again.')
     }
 
     setSaving(false)
@@ -53,6 +61,8 @@ export default function AddProjectForm({ plateId, onProjectAdded, onCancel }) {
           Billable plate
         </label>
       </div>
+
+      {formError && <p style={styles.errorText}>{formError}</p>}
 
       <div style={styles.actions}>
         <button className="btn-primary" type="submit" disabled={saving || !name.trim()} style={{ fontSize: '0.8125rem' }}>
@@ -95,6 +105,11 @@ const styles = {
     width: '16px',
     height: '16px',
     cursor: 'pointer',
+  },
+  errorText: {
+    fontSize: '0.8125rem',
+    color: 'var(--tier-1)',
+    margin: 0,
   },
   actions: {
     display: 'flex',

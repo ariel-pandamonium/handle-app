@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../lib/store'
 import { TIER_ORDER, getTierColor } from '../lib/urgency'
+import { ChevronDownIcon, ChevronUpIcon } from './Icons'
 
 // Urgency buttons: Scheduled first, then the standard tiers
 const URGENCY_OPTIONS = ['Scheduled', ...TIER_ORDER]
@@ -52,6 +53,8 @@ export default function AddTaskForm({ plateId, projectId = null, plates = [], pr
   const [taskType, setTaskType] = useState(defaultTaskType)
   const [dueDate, setDueDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
+  const [notes, setNotes] = useState('')
+  const [showNotes, setShowNotes] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -110,12 +113,15 @@ export default function AddTaskForm({ plateId, projectId = null, plates = [], pr
       task_type: taskType,
       due_date: dueDate || null,
       tier_assigned_date: new Date().toISOString().split('T')[0],
+      notes: notes.trim() || null,
     }
 
     const { error } = await supabase.from('tasks').insert(taskData)
 
     if (!error) {
       setTitle('')
+      setNotes('')
+      setShowNotes(false)
       setSelectedPlateId(plateId || '')
       setSelectedProjectId(projectId || '')
       setUrgencyMode('This Week')
@@ -174,14 +180,43 @@ export default function AddTaskForm({ plateId, projectId = null, plates = [], pr
       )}
 
       {/* Title */}
-      <input
-        className="input"
-        placeholder="What needs to be done?"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        autoFocus
-        required
-      />
+      <div style={styles.field}>
+        <label style={styles.label}>Title</label>
+        <div style={styles.titleRow}>
+          <input
+            className="input"
+            placeholder="What needs to be done?"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            autoFocus
+            required
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowNotes(!showNotes)}
+            style={styles.notesToggleBtn}
+            title={showNotes ? 'Hide notes' : 'Add notes'}
+          >
+            {showNotes
+              ? <ChevronUpIcon size={12} color="var(--text-secondary)" />
+              : <ChevronDownIcon size={12} color="var(--text-secondary)" />
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* Notes (collapsible) */}
+      {showNotes && (
+        <textarea
+          className="input"
+          placeholder="Add context, links, details... (optional)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          style={styles.notesInput}
+        />
+      )}
 
       <div style={styles.row}>
         {/* Urgency selector */}
@@ -350,6 +385,30 @@ const styles = {
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
+  },
+  titleRow: {
+    display: 'flex',
+    gap: '0.5rem',
+    alignItems: 'center',
+  },
+  notesToggleBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    border: '1px solid var(--border)',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    flexShrink: 0,
+    transition: 'border-color 0.15s',
+  },
+  notesInput: {
+    resize: 'vertical',
+    minHeight: '60px',
+    fontFamily: 'inherit',
+    fontSize: '0.875rem',
   },
   submitRow: {
     display: 'flex',
